@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai_assistant_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: assistant_user
+      POSTGRES_PASSWORD: assistant_secure_password
+      POSTGRES_DB: ai_assistant_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  pgdata:
+    driver: local

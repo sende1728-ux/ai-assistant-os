@@ -1,0 +1,104 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  password         String
+  name             String?
+  role             Role             @default(USER)
+  stripeCustomerId String?          @unique
+  subscriptionPlan SubscriptionPlan @default(FREE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  chats     Chat[]
+  folders   Folder[]
+  memories  Memory[]
+  documents Document[]
+  tasks     Task[]
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chats     Chat[]
+}
+
+model Chat {
+  id        String    @id @default(uuid())
+  title     String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String   // "user", "assistant", "system"
+  content   String
+  audioUrl  String?
+  createdAt DateTime @default(now())
+}
+
+model Memory {
+  id        String                      @id @default(uuid())
+  userId    String
+  user      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime                    @default(now())
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // "pdf", "docx", "txt", "csv", "xlsx", "image"
+  content   String?  // extracted text content
+  fileUrl   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Task {
+  id        String    @id @default(uuid())
+  title     String
+  status    String    @default("TODO") // "TODO", "IN_PROGRESS", "DONE"
+  priority  String    @default("MEDIUM") // "LOW", "MEDIUM", "HIGH"
+  notes     String?
+  dueDate   DateTime?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
